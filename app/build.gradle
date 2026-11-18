@@ -14,23 +14,32 @@ android {
         versionName '1.0'
     }
 
-    // 固定簽章：每次重新建置都能直接覆蓋安裝，不必先解除安裝
-    signingConfigs {
-        fixed {
-            storeFile file('jamhelper.keystore')
-            storePassword 'jamhelper'
-            keyAlias 'jamhelper'
-            keyPassword 'jamhelper'
+    // 簽章：金鑰加密存放在 release.keystore.enc，密碼放在 GitHub Secrets（KEYSTORE_PASSWORD）
+    // 由 GitHub Actions 解密後透過環境變數傳入；本機建置沒有金鑰時改用預設 debug 簽章
+    def ksFile = System.getenv('KEYSTORE_FILE')
+    def ksPass = System.getenv('KEYSTORE_PASSWORD')
+    if (ksFile && ksPass) {
+        signingConfigs {
+            fixed {
+                storeFile file(ksFile)
+                storePassword ksPass
+                keyAlias 'jamhelper'
+                keyPassword ksPass
+            }
         }
     }
 
     buildTypes {
         debug {
-            signingConfig signingConfigs.fixed
+            if (ksFile && ksPass) signingConfig signingConfigs.fixed
         }
         release {
             minifyEnabled false
-            signingConfig signingConfigs.fixed
+            if (ksFile && ksPass) {
+                signingConfig signingConfigs.fixed
+            } else {
+                signingConfig signingConfigs.debug
+            }
         }
     }
 

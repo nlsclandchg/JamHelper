@@ -3,10 +3,10 @@
 《無盡冬日》繽紛刨冰舖小遊戲的自動解謎 APK：自動數瓶子、記住每一格放錯過的顏色，每輪挑「最可能對」的放法，盡量少用果醬。
 
 ## 建置 APK（GitHub Actions）
-1. 在 GitHub 建一個新儲存庫，把這個資料夾的所有檔案（含 `.github` 資料夾與 `app/jamhelper.keystore`）上傳。
+1. 在 GitHub 建一個新儲存庫，把這個資料夾的所有檔案（含 `.github` 資料夾）上傳。
 2. 上傳後會自動建置，完成後自動發佈到 **Releases**。
    手機直接下載最新版：https://github.com/nlsclandchg/JamHelper/releases/latest/download/JamHelper.apk
-3. 簽章固定，之後更新版本可直接覆蓋安裝。
+3. 簽章金鑰以 AES-256 加密存放在 `app/release.keystore.enc`，解密密碼存在 GitHub Secrets 的 `KEYSTORE_PASSWORD`（Settings → Secrets and variables → Actions）。請自行備份這組密碼；遺失後無法再用同一個簽章更新。
 
 ## 手機設定（需 Android 11 以上）
 1. 安裝 APK，打開「果醬解謎助手」→ 開啟無障礙設定 → 開啟本服務。

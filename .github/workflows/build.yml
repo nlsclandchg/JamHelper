@@ -22,7 +22,22 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Decrypt signing key
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::尚未設定 KEYSTORE_PASSWORD：請到 Settings → Secrets and variables → Actions 新增"
+            exit 1
+          fi
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -in app/release.keystore.enc -out "$RUNNER_TEMP/release.keystore" \
+            -pass env:KEYSTORE_PASSWORD
+          echo "KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
       - name: Build
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: gradle :app:assembleRelease --no-daemon --stacktrace
 
       - name: Rename APK
