@@ -4,7 +4,8 @@
 
 ## 建置 APK（GitHub Actions）
 1. 在 GitHub 建一個新儲存庫，把這個資料夾的所有檔案（含 `.github` 資料夾與 `app/jamhelper.keystore`）上傳。
-2. 上傳後會自動建置；到 **Actions** → 最新一次執行 → 下方 **Artifacts** 下載 `JamHelper-apk`，解壓縮得到 APK。
+2. 上傳後會自動建置，完成後自動發佈到 **Releases**。
+   手機直接下載最新版：https://github.com/nlsclandchg/JamHelper/releases/latest/download/JamHelper.apk
 3. 簽章固定，之後更新版本可直接覆蓋安裝。
 
 ## 手機設定（需 Android 11 以上）
