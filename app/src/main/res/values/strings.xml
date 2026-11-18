@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">果醬解謎助手</string>
+    <string name="acc_desc">截取遊戲畫面辨識果醬瓶，並自動點擊托盤上的瓶子。只在你按下浮動視窗的「開始」後才會動作。</string>
+</resources>

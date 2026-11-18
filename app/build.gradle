@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.jamhelper'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.jamhelper'
+        minSdk 30          // 需要 Android 11 以上（無障礙截圖 API）
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // 固定簽章：每次重新建置都能直接覆蓋安裝，不必先解除安裝
+    signingConfigs {
+        fixed {
+            storeFile file('jamhelper.keystore')
+            storePassword 'jamhelper'
+            keyAlias 'jamhelper'
+            keyPassword 'jamhelper'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.fixed
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.fixed
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
