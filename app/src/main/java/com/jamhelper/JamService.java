@@ -3,18 +3,17 @@ package com.jamhelper;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.annotation.SuppressLint;
-import android.graphics.Bitmap;
+import android.content.Intent;
+import android.os.Build;
 import android.graphics.Color;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
-import android.hardware.HardwareBuffer;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
-import android.view.Display;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -30,7 +29,7 @@ import android.widget.TextView;
  */
 public class JamService extends AccessibilityService {
 
-    private static final long LOOP_DELAY_MS = 380;      // Android 截圖最短間隔約 333ms
+    private static final long LOOP_DELAY_MS = 380;      // Android 11+ 截圖最短間隔約 333ms
     private static final long TAP_TIMEOUT_MS = 3500;
 
     private WindowManager wm;
@@ -55,10 +54,13 @@ public class JamService extends AccessibilityService {
     private int missCount = 0;
     private long lastSceneAt = 0;
     private String lastAction = "";
+    private long startedAt = 0;
+    private static volatile JamService self;
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        self = this;
         main = new Handler(Looper.getMainLooper());
         thread = new HandlerThread("jam-worker");
         thread.start();
@@ -73,6 +75,8 @@ public class JamService extends AccessibilityService {
     @Override
     public void onDestroy() {
         running = false;
+        self = null;
+        stopService(new Intent(this, ScreenCaptureService.class));
         if (panel != null) { try { wm.removeView(panel); } catch (Exception ignored) { } }
         if (thread != null) thread.quitSafely();
         super.onDestroy();
@@ -182,6 +186,12 @@ public class JamService extends AccessibilityService {
     private void start() {
         if (running) return;
         running = true;
+        startedAt = SystemClock.uptimeMillis();
+        if (Build.VERSION.SDK_INT < 30 && ScreenCaptureService.instance == null) {
+            Intent i = new Intent(this, CaptureActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        }
         lastSig = null; stableCount = 0; awaiting = false; missCount = 0;
         lastSceneAt = SystemClock.uptimeMillis();
         lastAction = "開始";
@@ -198,43 +208,42 @@ public class JamService extends AccessibilityService {
 
     private void step() {
         if (!running) return;
-        try {
-            takeScreenshot(Display.DEFAULT_DISPLAY, getMainExecutor(), new TakeScreenshotCallback() {
-                @Override public void onSuccess(ScreenshotResult result) {
-                    HardwareBuffer hb = result.getHardwareBuffer();
-                    Bitmap hw = Bitmap.wrapHardwareBuffer(hb, result.getColorSpace());
-                    worker.post(() -> {
-                        try {
-                            if (hw != null) {
-                                Bitmap sw = hw.copy(Bitmap.Config.ARGB_8888, false);
-                                hw.recycle();
-                                hb.close();
-                                if (sw != null) {
-                                    int w = sw.getWidth(), h = sw.getHeight();
-                                    int[] px = new int[w * h];
-                                    sw.getPixels(px, 0, w, 0, 0, w, h);
-                                    sw.recycle();
-                                    handleFrame(px, w, h);
-                                }
-                            } else {
-                                hb.close();
-                            }
-                        } catch (Throwable t) {
-                            lastAction = "錯誤：" + t.getClass().getSimpleName();
-                            refresh();
-                        }
-                        if (running) worker.postDelayed(JamService.this::step, LOOP_DELAY_MS);
-                    });
-                }
-                @Override public void onFailure(int errorCode) {
-                    if (running) worker.postDelayed(JamService.this::step, LOOP_DELAY_MS + 200);
-                }
-            });
-        } catch (Throwable t) {
-            lastAction = "截圖失敗：" + t.getClass().getSimpleName();
-            refresh();
-            if (running) worker.postDelayed(this::step, 1000);
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                Capture30.take(this, worker, (px, w, h) -> {
+                    try { handleFrame(px, w, h); } catch (Throwable t) { lastAction = "錯誤：" + t.getClass().getSimpleName(); refresh(); }
+                    next(LOOP_DELAY_MS);
+                }, () -> next(LOOP_DELAY_MS + 200));
+            } catch (Throwable t) {
+                lastAction = "截圖失敗：" + t.getClass().getSimpleName();
+                refresh();
+                next(1000);
+            }
+            return;
         }
+        // Android 10 以下：從螢幕錄影服務拿最新畫面
+        ScreenCaptureService cap = ScreenCaptureService.instance;
+        int[] wh = new int[2];
+        int[] px = cap == null ? null : cap.grab(wh);
+        if (px == null) {
+            if (SystemClock.uptimeMillis() - startedAt > 30000) { stop("沒有取得螢幕錄影權限，請再按一次開始"); return; }
+            lastAction = "請在跳出的視窗允許「立即開始」錄影";
+            refresh();
+            next(500);
+            return;
+        }
+        try { handleFrame(px, wh[0], wh[1]); } catch (Throwable t) { lastAction = "錯誤：" + t.getClass().getSimpleName(); refresh(); }
+        next(LOOP_DELAY_MS);
+    }
+
+    private void next(long delay) {
+        if (running) worker.postDelayed(this::step, delay);
+    }
+
+    /** 使用者拒絕錄影權限 */
+    static void onCaptureDenied() {
+        JamService s = self;
+        if (s != null) s.worker.post(() -> s.stop("需要螢幕錄影權限才能讀取遊戲畫面"));
     }
 
     private void handleFrame(int[] px, int w, int h) {

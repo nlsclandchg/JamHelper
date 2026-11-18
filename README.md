@@ -8,7 +8,7 @@
    手機直接下載最新版：https://github.com/nlsclandchg/JamHelper/releases/latest/download/JamHelper.apk
 3. 簽章金鑰以 AES-256 加密存放在 `app/release.keystore.enc`，解密密碼存在 GitHub Secrets 的 `KEYSTORE_PASSWORD`（Settings → Secrets and variables → Actions）。請自行備份這組密碼；遺失後無法再用同一個簽章更新。
 
-## 手機設定（需 Android 11 以上）
+## 手機設定（Android 7 以上；Android 10 以下開始時會要求螢幕錄影權限）
 1. 安裝 APK，打開「果醬解謎助手」→ 開啟無障礙設定 → 開啟本服務。
 2. 若顯示「受限制的設定」：設定 → 應用程式 → 果醬解謎助手 → 右上角 ⋮ → 允許受限制的設定。
 3. 進入遊戲訂單畫面，按浮動視窗「▶ 開始」。浮動視窗請放在畫面上半部。

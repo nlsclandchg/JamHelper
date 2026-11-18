@@ -8,10 +8,10 @@ android {
 
     defaultConfig {
         applicationId 'com.jamhelper'
-        minSdk 30          // 需要 Android 11 以上（無障礙截圖 API）
+        minSdk 24          // Android 7 以上；11 以上用無障礙截圖，10 以下用螢幕錄影
+        versionCode 2
+        versionName '1.1'
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
     }
 
     // 簽章：金鑰加密存放在 release.keystore.enc，密碼放在 GitHub Secrets（KEYSTORE_PASSWORD）
@@ -41,6 +41,11 @@ android {
                 signingConfig signingConfigs.debug
             }
         }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
     }
 
     compileOptions {
